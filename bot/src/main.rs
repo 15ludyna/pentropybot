@@ -1,15 +1,17 @@
+use std::error::Error;
 use teloxide::prelude::*;
 
+mod handlers;
+
 #[tokio::main]
-async fn main() {
-    pretty_env_logger::init();
-    log::info!("Starting throw dice bot...");
-
+async fn main() -> Result<(), Box<dyn Error>> {
     let bot = Bot::from_env();
-
-    teloxide::repl(bot, |bot: Bot, msg: Message| async move {
-        bot.send_dice(msg.chat.id).await?;
-        Ok(())
-    })
-    .await;
+    let handler = dptree::entry()
+        .branch(Update::filter_message().endpoint(handlers::message_handler));
+    
+    Dispatcher::builder(bot, handler)
+        .enable_ctrlc_handler().build()
+        .dispatch()
+        .await;
+    Ok(())
 }
